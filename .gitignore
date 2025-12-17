@@ -1,161 +1,43 @@
-# ============================================
-# SECURITY - Sensitive Files & API Keys
-# ============================================
-.env
-.env.local
-.env.*.local
-*.key
-*.pem
-secrets.yaml
-credentials.json
-config.ini
-
-# ============================================
 # Python
-# ============================================
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
-# Distribution / packaging
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual environments
 venv/
 env/
 ENV/
-env.bak/
-venv.bak/
-.venv/
+.venv
 
-# ============================================
-# ChromaDB & Vector Stores
-# ============================================
-chroma_db/
-*.db
-*.sqlite
-*.sqlite3
-chroma_data/
-vectorstore/
-embeddings/
+# Environment variables
+.env
+.env.local
 
-# ============================================
-# Uploaded/Temporary Files
-# ============================================
-uploads/
-temp/
-tmp/
-*.pdf
-*.docx
-*.txt
-!requirements.txt
-!README.md
-
-# ============================================
-# Logs
-# ============================================
-*.log
-logs/
-*.log.*
-pip-log.txt
-pip-delete-this-directory.txt
-
-# ============================================
-# IDEs & Editors
-# ============================================
-# Visual Studio Code
-.vscode/
-.vs/
-*.code-workspace
-
-# PyCharm
-.idea/
-*.iml
-*.iws
-
-# Jupyter Notebook
-.ipynb_checkpoints/
-*.ipynb
-
-# Spyder
-.spyderproject
-.spyproject
-
-# ============================================
-# Operating Systems
-# ============================================
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-
-# Windows
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-.directory
-.Trash-*
-
-# ============================================
 # Streamlit
-# ============================================
 .streamlit/secrets.toml
-.streamlit/config.toml
 
-# ============================================
-# Testing & Coverage
-# ============================================
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.hypothesis/
+# ChromaDB
+chroma_db/
 
-# ============================================
-# Documentation
-# ============================================
-docs/_build/
-site/
-
-# ============================================
-# Backups & Temporary
-# ============================================
-*.bak
+# IDEs
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
-.cache/
 
-# ============================================
-# Package Manager Locks (Optional)
-# ============================================
-# Uncomment if you want to ignore lock files
-# poetry.lock
-# Pipfile.lock
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test files
+test_*.py
+*_test.py
+
+# Data
+data/*.pdf
+# Keep the folder structure
+!data/.gitkeep
