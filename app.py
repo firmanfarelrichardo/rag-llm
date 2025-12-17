@@ -1,55 +1,41 @@
 """
-Hybrid RAG Chatbot - SIMPLE & CLEAN VERSION
-No sidebar, minimalist design, professional layout
+Hybrid RAG Chatbot - FINAL FIX
+No Raw HTML Bugs, Responsive Sidebar
 """
 
 import os
-from typing import Optional
-
 import streamlit as st
 from dotenv import load_dotenv
 
 # Import modules
 from ingest import initialize_vector_store
 from chain import create_rag_chain
-from ui_simple import (
-    get_custom_css,
-    render_message,
-    render_welcome_message,
-    render_status_indicator
-)
-
+from ui import get_custom_css, render_message, render_welcome
 
 # ==================== CONFIG ====================
 st.set_page_config(
     page_title="RAG Chatbot",
-    page_icon="💬",
+    page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
+# ==================== LOGIC ====================
 
-# ==================== FUNCTIONS ====================
-
-def load_environment() -> tuple[Optional[str], Optional[str]]:
-    """Load API keys"""
+def load_environment():
     load_dotenv()
     groq_key = os.getenv("GROQ_API_KEY")
     tavily_key = os.getenv("TAVILY_API_KEY")
-    
+    # Secrets Fallback
     if not groq_key and hasattr(st, "secrets"):
         try: groq_key = st.secrets.get("GROQ_API_KEY")
         except: pass
-    
     if not tavily_key and hasattr(st, "secrets"):
         try: tavily_key = st.secrets.get("TAVILY_API_KEY")
         except: pass
-    
     return groq_key, tavily_key
 
-
 def init_session():
-    """Initialize session state"""
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "vectorstore" not in st.session_state:
@@ -59,65 +45,46 @@ def init_session():
     if "initialized" not in st.session_state:
         st.session_state.initialized = False
 
-
-def setup_app() -> bool:
-    """Setup application"""
+def setup_app():
     groq_key, tavily_key = load_environment()
     
     if not groq_key or not tavily_key:
-        st.error("**API Keys tidak ditemukan!**")
-        st.markdown("""
-        ### Setup API Keys:
-        1. Buat file `.env` di root folder
-        2. Tambahkan:
-        ```
-        GROQ_API_KEY=your_key
-        TAVILY_API_KEY=your_key
-        ```
-        
-        **Dapatkan Keys (GRATIS):**
-        - Groq: https://console.groq.com/keys
-        - Tavily: https://tavily.com/
-        """)
+        st.error("API Keys missing! Check .env")
         return False
     
+    # 1. Load Vector Store (with indicator in Sidebar)
     if st.session_state.vectorstore is None:
-        with st.spinner("Memuat dokumen..."):
-            vectorstore = initialize_vector_store(force_rebuild=False)
-            st.session_state.vectorstore = vectorstore
-            if vectorstore is None:
-                st.warning("Tidak ada dokumen di folder `data/`. Chatbot akan menggunakan web search saja.")
+        with st.sidebar:
+            with st.spinner("Memuat Dokumen..."):
+                vectorstore = initialize_vector_store(force_rebuild=False)
+                st.session_state.vectorstore = vectorstore
     
+    # 2. Load Chain
     if st.session_state.rag_chain is None:
         try:
-            with st.spinner("Menginisialisasi sistem..."):
-                rag_chain = create_rag_chain(
-                    vectorstore=st.session_state.vectorstore,
-                    groq_api_key=groq_key,
-                    tavily_api_key=tavily_key,
-                    model_name="llama-3.3-70b-versatile"
-                )
-                st.session_state.rag_chain = rag_chain
-                st.success("Sistem siap!")
-                return True
+            rag_chain = create_rag_chain(
+                vectorstore=st.session_state.vectorstore,
+                groq_api_key=groq_key,
+                tavily_api_key=tavily_key,
+                model_name="llama-3.3-70b-versatile"
+            )
+            st.session_state.rag_chain = rag_chain
+            return True
         except Exception as e:
-            st.error(f"Error: {str(e)}")
+            st.error(f"Init Error: {str(e)}")
             return False
-    
+            
     return True
 
-
 def process_query(query: str):
-    """Process user query"""
-    st.session_state.messages.append({
-        "role": "user",
-        "content": query
-    })
+    # Add User Msg
+    st.session_state.messages.append({"role": "user", "content": query})
     
     try:
-        with st.spinner("AI sedang berpikir..."):
-            result = st.session_state.rag_chain.ask(query)
+        # Get AI Response
+        result = st.session_state.rag_chain.ask(query)
         
+        # Add AI Msg
         st.session_state.messages.append({
             "role": "assistant",
             "content": result["response"],
@@ -126,114 +93,97 @@ def process_query(query: str):
     except Exception as e:
         st.session_state.messages.append({
             "role": "assistant",
-            "content": f"Maaf, terjadi kesalahan: {str(e)}",
+            "content": f"Maaf, error: {str(e)}",
             "sources": []
         })
 
-
-# ==================== MAIN ====================
+# ==================== MAIN UI ====================
 
 def main():
-    """Main application"""
-    
-    # Inject CSS
+    # 1. Inject CSS
     st.markdown(get_custom_css(), unsafe_allow_html=True)
     
-    # Initialize
+    # 2. Init
     init_session()
     
-    # Setup
-    if not st.session_state.initialized:
-        success = setup_app()
-        if success:
-            st.session_state.initialized = True
-        else:
-            st.stop()
-    
-    # HEADER
-    st.markdown(f"""
-    <div class="app-header">
-        <div class="header-content">
-            <div>
-                <div class="app-title">Hybrid RAG Chatbot</div>
-                <div class="app-subtitle">Powered by Llama 3.3 (70B) • ChromaDB • Tavily Search</div>
-            </div>
-            <div class="header-stats">
-                <div class="stat-item">
-                    <div class="stat-label">Messages</div>
-                    <div class="stat-value">{len(st.session_state.messages)}</div>
-                </div>
-                <div class="status-badge">
-                    <span class="status-dot"></span>
-                    <span>Online</span>
-                </div>
-            </div>
+    # 3. SIDEBAR (RESPONSIVE NATIVE STREAMLIT)
+    with st.sidebar:
+        st.header("🎛️ Control Panel")
+        
+        # Status Card
+        st.markdown("""
+        <div class="sidebar-stat">
+            <div style="font-size:0.8rem; color:#64748b; font-weight:600;">SYSTEM STATUS</div>
+            <div style="font-size:1.1rem; color:#10b981; font-weight:700; margin-top:4px;">● Online</div>
+            <div style="font-size:0.8rem; color:#64748b; margin-top:4px;">Model: Llama 3.3 (70B)</div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Add control buttons in header
-    col1, col2, col3 = st.columns([1, 1, 10])
-    with col1:
-        if st.button("🔄 Reset", key="reset"):
-            st.session_state.messages = []
-            st.rerun()
-    with col2:
-        if st.button("📥 Reload", key="reload"):
-            with st.spinner("Reloading..."):
+        """, unsafe_allow_html=True)
+        
+        st.markdown("### Actions")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("🗑️ Reset", use_container_width=True):
+                st.session_state.messages = []
+                st.rerun()
+        with c2:
+            if st.button("🔄 Reload", use_container_width=True):
                 st.session_state.vectorstore = initialize_vector_store(force_rebuild=True)
                 groq_key, tavily_key = load_environment()
                 st.session_state.rag_chain = create_rag_chain(
                     vectorstore=st.session_state.vectorstore,
                     groq_api_key=groq_key,
-                    tavily_api_key=tavily_key,
-                    model_name="llama-3.3-70b-versatile"
+                    tavily_api_key=tavily_key
                 )
-                st.success("Reloaded!")
-                st.rerun()
+                st.toast("Dokumen dimuat ulang!", icon="✅")
+        
+        st.markdown("---")
+        st.info("Prioritas: Dokumen Lokal (`data/`). Jika tidak ada, mencari via Web.")
+
+    # 4. SETUP CHECK
+    if not st.session_state.initialized:
+        if setup_app():
+            st.session_state.initialized = True
+        else:
+            st.stop()
+
+    # 5. CHAT AREA
+    chat_placeholder = st.container()
     
-    # CHAT CONTAINER
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    with chat_placeholder:
+        if not st.session_state.messages:
+            st.markdown(render_welcome(), unsafe_allow_html=True)
+        else:
+            for msg in st.session_state.messages:
+                # CRITICAL: unsafe_allow_html=True MUST be on
+                st.markdown(
+                    render_message(
+                        msg["role"], 
+                        msg["content"], 
+                        msg.get("sources", [])
+                    ), 
+                    unsafe_allow_html=True
+                )
+
+    # 6. INPUT AREA (FIXED BOTTOM)
+    st.markdown('<div class="input-sticky"><div class="input-wrapper">', unsafe_allow_html=True)
     
-    if not st.session_state.messages:
-        st.markdown(render_welcome_message(), unsafe_allow_html=True)
-    else:
-        for msg in st.session_state.messages:
-            st.markdown(
-                render_message(
-                    msg["role"],
-                    msg["content"],
-                    msg.get("sources", [])
-                ),
-                unsafe_allow_html=True
-            )
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Add spacing for fixed input
-    st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
-    
-    # INPUT AREA (Fixed at bottom)
-    st.markdown('<div class="input-area"><div class="input-wrapper">', unsafe_allow_html=True)
-    
-    col_input, col_button = st.columns([5, 1])
-    with col_input:
+    col1, col2 = st.columns([6, 1])
+    with col1:
         user_input = st.text_input(
-            "Message",
-            key="user_input",
-            placeholder="Ketik pertanyaan Anda di sini...",
-            label_visibility="collapsed"
+            "Pesan", 
+            placeholder="Ketik pertanyaan Anda di sini...", 
+            label_visibility="collapsed",
+            key="chat_input_main"
         )
-    with col_button:
-        send = st.button("Send", use_container_width=True)
+    with col2:
+        send_pressed = st.button("Kirim", use_container_width=True)
     
     st.markdown('</div></div>', unsafe_allow_html=True)
     
     # Process
-    if send and user_input:
+    if send_pressed and user_input:
         process_query(user_input)
         st.rerun()
-
 
 if __name__ == "__main__":
     main()
